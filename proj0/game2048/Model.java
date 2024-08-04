@@ -114,6 +114,51 @@ public class Model extends Observable {
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
 
+        if (side != Side.NORTH)
+            board.setViewingPerspective(side);
+
+        // 1- Move the first none empty tile to top and put lastFilled to 3
+        // 2- Compare the next none empty tile to the tile in lastFilled
+        //      - if equal merge and keep last filled
+        //      - if not equal lastFilled-1 then move the tile to lastFilled
+
+        int lastFilled = -1;
+        for (int c=0; c<4; ++c) {
+            for (int r=3; r>-1; --r) {
+                Tile t = board.tile(c, r);
+                // Skip empty tiles
+                if (t != null) {
+                    if (lastFilled != -1) {
+                        if (board.tile(c, lastFilled) == null) { // Comparing to an empty tile, just move it
+                            board.move(c, lastFilled, t);
+                            changed = true;
+                        } else if (t.value() == board.tile(c, lastFilled).value()) {
+                            // None empty tile, equal current, merge and update score, move the filled index so that no other merges happen to same tile.
+                            score += board.move(c, lastFilled, t) ? board.tile(c, lastFilled).value() : 0;
+                            lastFilled -= 1;
+                            changed = true;
+                        } else { // None empty tile, no merge.
+                            lastFilled -= 1;
+                            if (r != lastFilled) {
+                                board.move(c, lastFilled, t);
+                                changed = true;
+                            }
+                        }
+                    } else {
+                        // First none empty tile, move it to first square.
+                        if (r != 3) {
+                            board.move(c, 3, t);
+                            changed = true;
+                        }
+                        lastFilled = 3;
+                    }
+                }
+            }
+            lastFilled = -1;
+        }
+
+        board.setViewingPerspective(Side.NORTH);
+
         checkGameOver();
         if (changed) {
             setChanged();
